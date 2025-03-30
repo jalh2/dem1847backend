@@ -6,6 +6,8 @@ const path = require('path');
 // Create a new order
 exports.createOrder = async (req, res) => {
     try {
+        console.log('Received order creation request:', req.body);
+        
         const { 
             items, 
             totalUSD, 
@@ -16,6 +18,11 @@ exports.createOrder = async (req, res) => {
         } = req.body;
         
         const userId = req.body.userId;
+
+        // Validate user ID
+        if (!userId) {
+            return res.status(400).json({ message: 'User ID is required' });
+        }
 
         // Validate items
         if (!items || !Array.isArray(items) || items.length === 0) {
