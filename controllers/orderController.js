@@ -197,3 +197,50 @@ exports.cancelOrder = async (req, res) => {
         res.status(500).json({ message: 'Error cancelling order', error: error.message });
     }
 };
+
+// Upload payment proof image
+exports.uploadPaymentProof = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        
+        // Check if order exists
+        const order = await Order.findById(orderId);
+        if (!order) {
+            // Clean up uploaded file if order not found
+            if (req.file) {
+                fs.unlinkSync(req.file.path);
+            }
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        
+        // Check if file was uploaded
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+        
+        // Update order with payment proof image path
+        order.paymentProofImage = `/${req.file.path.replace(/\\/g, '/')}`;
+        order.status = 'processing'; // Update status to processing after payment proof
+        
+        await order.save();
+        
+        res.status(200).json({
+            message: 'Payment proof uploaded successfully',
+            order: {
+                id: order._id,
+                status: order.status,
+                paymentProofImage: order.paymentProofImage
+            }
+        });
+    } catch (error) {
+        console.error('Error uploading payment proof:', error);
+        // Clean up uploaded file if there's an error
+        if (req.file) {
+            fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({ 
+            message: 'Error uploading payment proof', 
+            error: error.message 
+        });
+    }
+};
