@@ -8,7 +8,7 @@ const fs = require('fs');
 // Set up storage for payment proof images
 const storage = multer.diskStorage({
     destination: function(req, file, cb) {
-        const uploadDir = path.join(__dirname, '../public/uploads/payments');
+        const uploadDir = 'uploads/payments';
         
         // Create directory if it doesn't exist
         if (!fs.existsSync(uploadDir)) {
@@ -28,7 +28,7 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
     fileFilter: function(req, file, cb) {
         // Accept images only
-        if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+        if (!file.mimetype.startsWith('image/')) {
             return cb(new Error('Only image files are allowed!'), false);
         }
         cb(null, true);
@@ -38,14 +38,14 @@ const upload = multer({
 // Create a new order
 router.post('/', orderController.createOrder);
 
-// Upload payment proof
-router.post('/:orderId/payment-proof', upload.single('paymentProof'), orderController.uploadPaymentProof);
-
 // Get orders for a user
 router.get('/user/:userId', orderController.getUserOrders);
 
 // Get order details
 router.get('/:orderId', orderController.getOrderDetails);
+
+// Upload payment proof
+router.post('/:orderId/payment-proof', upload.single('paymentProof'), orderController.uploadPaymentProof);
 
 // Update order status (admin only)
 router.put('/:orderId/status', orderController.updateOrderStatus);

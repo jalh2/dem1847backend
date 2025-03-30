@@ -63,55 +63,29 @@ exports.createOrder = async (req, res) => {
     }
 };
 
-// Upload payment proof image
-exports.uploadPaymentProof = async (req, res) => {
-    try {
-        const { orderId } = req.params;
-        
-        // Check if order exists
-        const order = await Order.findById(orderId);
-        if (!order) {
-            return res.status(404).json({ message: 'Order not found' });
-        }
-        
-        // Check if file was uploaded
-        if (!req.file) {
-            return res.status(400).json({ message: 'No file uploaded' });
-        }
-        
-        // Update order with payment proof image path
-        order.paymentProofImage = `/uploads/payments/${req.file.filename}`;
-        order.status = 'processing'; // Update status to processing after payment proof
-        
-        await order.save();
-        
-        res.status(200).json({
-            message: 'Payment proof uploaded successfully',
-            order: {
-                id: order._id,
-                status: order.status,
-                paymentProofImage: order.paymentProofImage
-            }
-        });
-    } catch (error) {
-        console.error('Error uploading payment proof:', error);
-        res.status(500).json({ message: 'Error uploading payment proof', error: error.message });
-    }
-};
-
 // Get orders for a user
 exports.getUserOrders = async (req, res) => {
     try {
         const { userId } = req.params;
+        console.log('Fetching orders for user:', userId);
         
+        if (!userId) {
+            return res.status(400).json({ message: 'User ID is required' });
+        }
+
         const orders = await Order.find({ user: userId })
             .populate('items.product')
             .sort({ createdAt: -1 });
         
+        console.log(`Found ${orders.length} orders for user ${userId}`);
+        
         res.status(200).json(orders);
     } catch (error) {
         console.error('Error fetching user orders:', error);
-        res.status(500).json({ message: 'Error fetching user orders', error: error.message });
+        res.status(500).json({ 
+            message: 'Error fetching user orders', 
+            error: error.message 
+        });
     }
 };
 
