@@ -17,7 +17,9 @@ exports.createOrder = async (req, res) => {
             orderNotes 
         } = req.body;
         
-        const userId = req.body.userId;
+        // Check for userId in different possible formats
+        const userId = req.body.userId || req.body.user_id || req.body.user;
+        console.log('User ID extracted from request:', userId);
 
         // Validate user ID
         if (!userId) {
