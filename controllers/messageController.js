@@ -87,7 +87,7 @@ exports.getUserConversations = async (req, res) => {
         // Get unique conversations with the latest message
         const conversations = await Message.aggregate([
             {
-                $match: { userId: mongoose.Types.ObjectId(userId) }
+                $match: { userId: new mongoose.Types.ObjectId(userId) }
             },
             {
                 $sort: { createdAt: -1 }
