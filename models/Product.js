@@ -9,6 +9,14 @@ const productSchema = new mongoose.Schema({
     images: [{
         filename: String,
         path: String,
+        imageData: {
+            type: String, // Base64 encoded image data
+            default: null
+        },
+        mimeType: {
+            type: String, // MIME type of the image
+            default: null
+        },
         uploadDate: {
             type: Date,
             default: Date.now

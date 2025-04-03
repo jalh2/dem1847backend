@@ -40,7 +40,7 @@ function checkFileType(file, cb) {
 
 // Upload product images
 exports.uploadImages = (req, res) => {
-    upload(req, res, (err) => {
+    upload(req, res, async (err) => {
         if (err) {
             return res.status(400).json({ message: err });
         }
@@ -49,16 +49,30 @@ exports.uploadImages = (req, res) => {
             return res.status(400).json({ message: 'No files uploaded' });
         }
         
-        const images = req.files.map(file => ({
-            filename: file.filename,
-            path: `/uploads/${file.filename}`,
-            uploadDate: Date.now()
-        }));
-        
-        res.status(200).json({ 
-            message: 'Images uploaded successfully',
-            images 
-        });
+        try {
+            const images = await Promise.all(req.files.map(async file => {
+                // Read the file as binary data
+                const imageBuffer = fs.readFileSync(file.path);
+                // Convert to base64
+                const base64Image = imageBuffer.toString('base64');
+                
+                return {
+                    filename: file.filename,
+                    path: `/uploads/${file.filename}`,
+                    imageData: base64Image,
+                    mimeType: file.mimetype,
+                    uploadDate: Date.now()
+                };
+            }));
+            
+            res.status(200).json({ 
+                message: 'Images uploaded successfully',
+                images 
+            });
+        } catch (error) {
+            console.error('Error processing images:', error);
+            return res.status(500).json({ message: 'Error processing images', error: error.message });
+        }
     });
 };
 
