@@ -220,7 +220,11 @@ exports.uploadPaymentProof = async (req, res) => {
         
         // Update order with payment proof image path
         // Store the path without leading slash to match how express.static serves files
-        order.paymentProofImage = req.file.path.replace(/\\/g, '/');
+        // Make sure to log the exact path for debugging
+        const imagePath = req.file.path.replace(/\\/g, '/');
+        console.log('Saving payment proof image path:', imagePath);
+        
+        order.paymentProofImage = imagePath;
         order.status = 'processing'; // Update status to processing after payment proof
         
         await order.save();
