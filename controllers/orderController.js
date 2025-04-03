@@ -95,7 +95,10 @@ exports.getOrderDetails = async (req, res) => {
         const { orderId } = req.params;
         
         const order = await Order.findById(orderId)
-            .populate('items.product')
+            .populate({
+                path: 'items.product',
+                select: 'name priceUSD priceLRD images category description'
+            })
             .populate('user', 'username phoneNumber');
         
         if (!order) {

@@ -56,13 +56,23 @@ exports.uploadImages = (req, res) => {
                 // Convert to base64
                 const base64Image = imageBuffer.toString('base64');
                 
-                return {
+                // Create the image object with all necessary data
+                const imageObject = {
                     filename: file.filename,
                     path: `/uploads/${file.filename}`,
                     imageData: base64Image,
                     mimeType: file.mimetype,
                     uploadDate: Date.now()
                 };
+                
+                // Clean up the file from the filesystem after storing in MongoDB
+                fs.unlink(file.path, (unlinkErr) => {
+                    if (unlinkErr) {
+                        console.error('Error deleting file:', unlinkErr);
+                    }
+                });
+                
+                return imageObject;
             }));
             
             res.status(200).json({ 
