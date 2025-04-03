@@ -17,6 +17,12 @@ router.put('/profile/:id', userController.updateProfile);
 // Change password
 router.put('/change-password/:id', userController.changePassword);
 
+// Get user address
+router.get('/address/:id', userController.getAddress);
+
+// Update user address
+router.put('/address/:id', userController.updateAddress);
+
 // Create admin account (for initial setup)
 router.post('/create-admin', userController.createAdmin);
 

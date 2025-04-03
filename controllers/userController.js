@@ -158,6 +158,62 @@ exports.changePassword = async (req, res) => {
     }
 };
 
+// Get user address
+exports.getAddress = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        
+        // Find user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Return address
+        res.status(200).json({
+            address: user.address || {}
+        });
+    } catch (error) {
+        console.error('Error getting user address:', error);
+        res.status(500).json({ message: 'Error getting user address', error: error.message });
+    }
+};
+
+// Update user address
+exports.updateAddress = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const { street, city, state, zipCode, country } = req.body;
+        
+        // Find user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Update address
+        user.address = {
+            street: street || (user.address ? user.address.street : ''),
+            city: city || (user.address ? user.address.city : ''),
+            state: state || (user.address ? user.address.state : ''),
+            zipCode: zipCode || (user.address ? user.address.zipCode : ''),
+            country: country || (user.address ? user.address.country : 'Liberia')
+        };
+
+        // Save user
+        await user.save();
+
+        // Return success
+        res.status(200).json({
+            message: 'Address updated successfully',
+            address: user.address
+        });
+    } catch (error) {
+        console.error('Error updating user address:', error);
+        res.status(500).json({ message: 'Error updating user address', error: error.message });
+    }
+};
+
 // Create admin account (for initial setup)
 exports.createAdmin = async (req, res) => {
     try {

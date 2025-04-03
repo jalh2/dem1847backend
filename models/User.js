@@ -27,6 +27,29 @@ const userSchema = new mongoose.Schema({
         required: true,
         default: 'customer'
     },
+    address: {
+        street: {
+            type: String,
+            required: false
+        },
+        city: {
+            type: String,
+            required: false
+        },
+        state: {
+            type: String,
+            required: false
+        },
+        zipCode: {
+            type: String,
+            required: false
+        },
+        country: {
+            type: String,
+            required: false,
+            default: 'Liberia'
+        }
+    },
     createdAt: {
         type: Date,
         default: Date.now
