@@ -50,6 +50,14 @@ const orderSchema = new mongoose.Schema({
         type: String,
         default: null
     },
+    paymentProofImageData: {
+        type: String, // Base64 encoded image data
+        default: null
+    },
+    paymentProofImageMimeType: {
+        type: String, // MIME type of the image (e.g., 'image/jpeg', 'image/png')
+        default: null
+    },
     shippingAddress: {
         street: String,
         city: String,

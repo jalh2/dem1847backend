@@ -151,13 +151,31 @@ exports.getAllOrders = async (req, res) => {
     try {
         const orders = await Order.find()
             .populate('user', 'username phoneNumber')
-            .populate('items.product', 'name priceUSD priceLRD')
+            .populate('items.product', 'name priceUSD priceLRD images')
             .sort({ createdAt: -1 });
         
         res.status(200).json(orders);
     } catch (error) {
-        console.error('Error fetching all orders:', error);
-        res.status(500).json({ message: 'Error fetching all orders', error: error.message });
+        console.error('Error fetching orders:', error);
+        res.status(500).json({ message: 'Error fetching orders', error: error.message });
+    }
+};
+
+// Get order by ID
+exports.getOrderById = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id)
+            .populate('user', 'username phoneNumber')
+            .populate('items.product', 'name priceUSD priceLRD images');
+        
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        
+        res.status(200).json(order);
+    } catch (error) {
+        console.error('Error fetching order:', error);
+        res.status(500).json({ message: 'Error fetching order', error: error.message });
     }
 };
 
@@ -198,13 +216,12 @@ exports.cancelOrder = async (req, res) => {
     }
 };
 
-// Upload payment proof image
+// Upload payment proof for an order
 exports.uploadPaymentProof = async (req, res) => {
     try {
-        const { orderId } = req.params;
+        // Find order by ID
+        const order = await Order.findById(req.params.orderId);
         
-        // Check if order exists
-        const order = await Order.findById(orderId);
         if (!order) {
             // Clean up uploaded file if order not found
             if (req.file) {
@@ -218,16 +235,26 @@ exports.uploadPaymentProof = async (req, res) => {
             return res.status(400).json({ message: 'No file uploaded' });
         }
         
-        // Update order with payment proof image path
-        // Store the path without leading slash to match how express.static serves files
-        // Make sure to log the exact path for debugging
+        // Read the file as binary data
+        const imageBuffer = fs.readFileSync(req.file.path);
+        
+        // Convert to base64 for storage in MongoDB
+        const base64Image = imageBuffer.toString('base64');
+        
+        // Store both the path (for backward compatibility) and the actual image data
         const imagePath = req.file.path.replace(/\\/g, '/');
         console.log('Saving payment proof image path:', imagePath);
         
+        // Update order with payment proof image information
         order.paymentProofImage = imagePath;
+        order.paymentProofImageData = base64Image;
+        order.paymentProofImageMimeType = req.file.mimetype;
         order.status = 'processing'; // Update status to processing after payment proof
         
         await order.save();
+        
+        // Clean up the file from the filesystem since we've stored it in MongoDB
+        fs.unlinkSync(req.file.path);
         
         res.status(200).json({
             message: 'Payment proof uploaded successfully',
@@ -243,9 +270,6 @@ exports.uploadPaymentProof = async (req, res) => {
         if (req.file) {
             fs.unlinkSync(req.file.path);
         }
-        res.status(500).json({ 
-            message: 'Error uploading payment proof', 
-            error: error.message 
-        });
+        res.status(500).json({ message: 'Error uploading payment proof', error: error.message });
     }
 };
