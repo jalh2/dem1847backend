@@ -26,4 +26,10 @@ router.put('/address/:id', userController.updateAddress);
 // Create admin account (for initial setup)
 router.post('/create-admin', userController.createAdmin);
 
+// Get all users (admin only)
+router.get('/', userController.getAllUsers);
+
+// Delete user (admin only)
+router.delete('/:id', userController.deleteUser);
+
 module.exports = router;

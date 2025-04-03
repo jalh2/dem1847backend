@@ -217,37 +217,89 @@ exports.updateAddress = async (req, res) => {
 // Create admin account (for initial setup)
 exports.createAdmin = async (req, res) => {
     try {
-        // Check if admin already exists
-        const adminExists = await User.findOne({ role: 'admin' });
-        if (adminExists) {
-            return res.status(400).json({ message: 'Admin account already exists' });
+        const { username, phoneNumber, password, secretKey } = req.body;
+        
+        // Validate secret key (simple implementation)
+        if (secretKey !== 'dem1847-admin-secret') {
+            return res.status(401).json({ message: 'Invalid secret key' });
         }
         
-        const { username, phoneNumber, password } = req.body;
+        // Check if username already exists
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Username already exists' });
+        }
         
-        // Create admin user
-        const admin = new User({
+        // Create new admin user
+        const user = new User({
             username,
             phoneNumber,
             role: 'admin'
         });
         
         // Set password
-        admin.setPassword(password);
+        user.setPassword(password);
         
-        // Save admin
-        await admin.save();
+        // Save user
+        await user.save();
         
         res.status(201).json({
             message: 'Admin account created successfully',
             user: {
-                id: admin._id,
-                username: admin.username,
-                role: admin.role
+                id: user._id,
+                username: user.username,
+                phoneNumber: user.phoneNumber,
+                role: user.role
             }
         });
     } catch (error) {
-        console.error('Error creating admin:', error);
-        res.status(500).json({ message: 'Error creating admin', error: error.message });
+        console.error('Error creating admin account:', error);
+        res.status(500).json({ message: 'Error creating admin account', error: error.message });
+    }
+};
+
+// Delete user (admin only can delete regular users)
+exports.deleteUser = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        
+        // Find user to delete
+        const userToDelete = await User.findById(userId);
+        if (!userToDelete) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        // Check if trying to delete an admin
+        if (userToDelete.role === 'admin') {
+            return res.status(403).json({ message: 'Cannot delete admin accounts' });
+        }
+        
+        // Delete the user
+        await User.findByIdAndDelete(userId);
+        
+        res.status(200).json({ message: 'User deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        res.status(500).json({ message: 'Error deleting user', error: error.message });
+    }
+};
+
+// Get all users (admin only)
+exports.getAllUsers = async (req, res) => {
+    try {
+        // Get query parameters for filtering
+        const { role } = req.query;
+        
+        // Build filter object
+        const filter = {};
+        if (role) filter.role = role;
+        
+        // Find users with filters
+        const users = await User.find(filter).select('-hash -salt');
+        
+        res.status(200).json({ users });
+    } catch (error) {
+        console.error('Error getting all users:', error);
+        res.status(500).json({ message: 'Error getting all users', error: error.message });
     }
 };
