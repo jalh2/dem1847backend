@@ -16,11 +16,11 @@ const storage = multer.diskStorage({
 // Initialize upload
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 10000000 }, // 10MB limit
+    limits: { fileSize: 5000000 }, // 5MB limit
     fileFilter: function(req, file, cb) {
         checkFileType(file, cb);
     }
-}).array('images', 5); // Allow up to 5 images
+}).array('images', 10); // Allow up to 10 images
 
 // Check file type
 function checkFileType(file, cb) {
