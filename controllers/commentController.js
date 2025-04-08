@@ -1,6 +1,7 @@
 const Comment = require('../models/Comment');
 const Product = require('../models/Product');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
 // Get all comments for a product
 exports.getProductComments = async (req, res) => {
