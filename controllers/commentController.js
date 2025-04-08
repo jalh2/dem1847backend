@@ -122,8 +122,19 @@ exports.getCommentStats = async (req, res) => {
     try {
         const { productId } = req.params;
         
+        // Simple approach without aggregation for empty collections
+        const count = await Comment.countDocuments({ productId });
+        
+        if (count === 0) {
+            return res.status(200).json({
+                avgRating: 0,
+                count: 0
+            });
+        }
+        
+        // If there are comments, use aggregation
         const stats = await Comment.aggregate([
-            { $match: { productId: mongoose.Types.ObjectId(productId) } },
+            { $match: { productId: new mongoose.Types.ObjectId(productId) } },
             { 
                 $group: {
                     _id: null,
