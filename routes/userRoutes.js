@@ -31,8 +31,17 @@ router.get('/wishlist/:id', userController.getWishlist);
 // Create admin account (for initial setup)
 router.post('/create-admin', userController.createAdmin);
 
+// Create new user (admin only)
+router.post('/create-user', userController.createUser);
+
+// Reset user password (admin only)
+router.put('/reset-password/:id', userController.resetUserPassword);
+
 // Get all users (admin only)
 router.get('/', userController.getAllUsers);
+
+// Get admin and employee users for login dropdown
+router.get('/admin-employee', userController.getAdminEmployeeUsers);
 
 // Delete user (admin only)
 router.delete('/:id', userController.deleteUser);

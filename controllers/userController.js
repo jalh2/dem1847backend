@@ -287,11 +287,136 @@ exports.deleteUser = async (req, res) => {
 // Get all users (admin only)
 exports.getAllUsers = async (req, res) => {
     try {
-        const users = await User.find({ role: 'customer' }).select('-password -salt');
+        console.log('Getting all users...');
+        
+        // Get query parameters
+        const { role } = req.query;
+        
+        // Build query
+        const query = {};
+        if (role) {
+            query.role = role;
+        }
+        
+        // Fetch users based on query (or all users if no query)
+        const users = await User.find(query).select('-password -salt');
+        
+        console.log(`Found ${users.length} users`);
+        console.log('User roles distribution:', users.reduce((acc, user) => {
+            acc[user.role] = (acc[user.role] || 0) + 1;
+            return acc;
+        }, {}));
+        
         res.status(200).json({ users });
     } catch (error) {
         console.error('Error getting all users:', error);
         res.status(500).json({ message: 'Error getting all users', error: error.message });
+    }
+};
+
+// Get admin and employee users for login dropdown
+exports.getAdminEmployeeUsers = async (req, res) => {
+    try {
+        const users = await User.find({ 
+            role: { $in: ['admin', 'employee'] } 
+        }).select('username role _id');
+        
+        res.status(200).json({ users });
+    } catch (error) {
+        console.error('Error getting admin and employee users:', error);
+        res.status(500).json({ message: 'Error getting admin and employee users', error: error.message });
+    }
+};
+
+// Create new user (admin only)
+exports.createUser = async (req, res) => {
+    try {
+        console.log('Create user request received:', req.body);
+        const { username, phoneNumber, password, role } = req.body;
+        
+        // Validate required fields
+        if (!username || !phoneNumber || !password) {
+            console.log('Missing required fields');
+            return res.status(400).json({ message: 'Username, phone number, and password are required' });
+        }
+        
+        // Check if user already exists
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+            console.log('Username already exists:', username);
+            return res.status(400).json({ message: 'Username already exists' });
+        }
+        
+        // Create new user
+        const user = new User({
+            username,
+            phoneNumber,
+            role: role || 'customer'
+        });
+        
+        // Set password
+        user.setPassword(password);
+        
+        console.log('Saving new user:', {
+            username: user.username,
+            phoneNumber: user.phoneNumber,
+            role: user.role
+        });
+        
+        // Save user
+        await user.save();
+        
+        console.log('User created successfully:', user._id);
+        
+        // Return success without sending back password or salt
+        res.status(201).json({
+            message: 'User created successfully',
+            user: {
+                id: user._id,
+                username: user.username,
+                phoneNumber: user.phoneNumber,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error('Error creating user:', error);
+        res.status(500).json({ message: 'Error creating user', error: error.message });
+    }
+};
+
+// Reset user password (admin only)
+exports.resetUserPassword = async (req, res) => {
+    try {
+        console.log('Reset password request received:', { userId: req.params.id });
+        const userId = req.params.id;
+        const { newPassword } = req.body;
+        
+        if (!newPassword) {
+            console.log('New password is required');
+            return res.status(400).json({ message: 'New password is required' });
+        }
+        
+        // Find user
+        const user = await User.findById(userId);
+        if (!user) {
+            console.log('User not found:', userId);
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        console.log('Resetting password for user:', user.username);
+        
+        // Set new password
+        user.setPassword(newPassword);
+        
+        // Save user
+        await user.save();
+        
+        console.log('Password reset successfully for user:', user.username);
+        
+        res.status(200).json({ message: 'Password reset successfully' });
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        res.status(500).json({ message: 'Error resetting password', error: error.message });
     }
 };
 
