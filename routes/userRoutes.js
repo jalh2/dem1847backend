@@ -23,6 +23,11 @@ router.get('/address/:id', userController.getAddress);
 // Update user address
 router.put('/address/:id', userController.updateAddress);
 
+// Wishlist routes
+router.post('/wishlist/:id', userController.addToWishlist);
+router.delete('/wishlist/:id/:productId', userController.removeFromWishlist);
+router.get('/wishlist/:id', userController.getWishlist);
+
 // Create admin account (for initial setup)
 router.post('/create-admin', userController.createAdmin);
 
