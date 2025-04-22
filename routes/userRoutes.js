@@ -37,6 +37,9 @@ router.post('/create-user', userController.createUser);
 // Reset user password (admin only)
 router.put('/reset-password/:id', userController.resetUserPassword);
 
+// Reset password from customer service request
+router.post('/reset-password', userController.resetPasswordFromRequest);
+
 // Get all users (admin only)
 router.get('/', userController.getAllUsers);
 

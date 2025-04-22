@@ -134,15 +134,47 @@ exports.getUserConversations = async (req, res) => {
 // Send a new message
 exports.sendMessage = async (req, res) => {
     try {
-        const { userId, text, topic, conversationId, isFromUser } = req.body;
+        const { userId, text, topic, conversationId, isFromUser, meta } = req.body;
         
-        // Create new message
+        // Special handling for password reset requests
+        if (topic === 'Password Reset' && meta && meta.type === 'password_reset') {
+            // Find user by phone number
+            const user = await User.findOne({ phoneNumber: meta.phoneNumber });
+            
+            if (!user) {
+                return res.status(404).json({ 
+                    message: 'No user found with this phone number',
+                    success: false
+                });
+            }
+            
+            // Create new message with the actual user ID
+            const message = new Message({
+                userId: user._id,
+                text,
+                topic,
+                conversationId,
+                isFromUser: isFromUser !== undefined ? isFromUser : true,
+                meta
+            });
+            
+            await message.save();
+            
+            return res.status(201).json({
+                message: 'Password reset request sent successfully',
+                success: true,
+                data: message
+            });
+        }
+        
+        // Regular message handling
         const message = new Message({
             userId,
             text,
             topic,
             conversationId,
-            isFromUser: isFromUser !== undefined ? isFromUser : true
+            isFromUser: isFromUser !== undefined ? isFromUser : true,
+            meta
         });
         
         await message.save();

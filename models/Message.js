@@ -12,7 +12,7 @@ const messageSchema = new mongoose.Schema({
     },
     topic: {
         type: String,
-        enum: ['Order Issue', 'Product Inquiry', 'Payment Problem', 'Shipping Question', 'Return/Refund', 'Other'],
+        enum: ['Order Issue', 'Product Inquiry', 'Payment Problem', 'Shipping Question', 'Return/Refund', 'Password Reset', 'Other'],
         required: true
     },
     conversationId: {
@@ -30,6 +30,10 @@ const messageSchema = new mongoose.Schema({
     read: {
         type: Boolean,
         default: false
+    },
+    meta: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
     }
 });
 

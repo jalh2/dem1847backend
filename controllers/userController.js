@@ -498,3 +498,42 @@ exports.getWishlist = async (req, res) => {
         res.status(500).json({ message: 'Error getting wishlist', error: error.message });
     }
 };
+
+// Reset password from customer service request
+exports.resetPasswordFromRequest = async (req, res) => {
+    try {
+        const { userId, phoneNumber } = req.body;
+        
+        if (!userId || !phoneNumber) {
+            return res.status(400).json({ message: 'User ID and phone number are required' });
+        }
+        
+        // Find user by ID and verify phone number
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        if (user.phoneNumber !== phoneNumber) {
+            return res.status(400).json({ message: 'Phone number does not match user record' });
+        }
+        
+        // Generate a random password
+        const newPassword = Math.random().toString(36).slice(-8);
+        
+        // Set new password
+        user.setPassword(newPassword);
+        
+        // Save user
+        await user.save();
+        
+        // Return success with the new password
+        res.status(200).json({ 
+            message: 'Password reset successfully',
+            newPassword
+        });
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        res.status(500).json({ message: 'Error resetting password', error: error.message });
+    }
+};
