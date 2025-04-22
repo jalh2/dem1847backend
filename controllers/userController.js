@@ -537,3 +537,30 @@ exports.resetPasswordFromRequest = async (req, res) => {
         res.status(500).json({ message: 'Error resetting password', error: error.message });
     }
 };
+
+// Check if a user exists with a given phone number
+exports.checkPhoneNumber = async (req, res) => {
+    try {
+        const { phoneNumber } = req.params;
+        
+        if (!phoneNumber) {
+            return res.status(400).json({ message: 'Phone number is required' });
+        }
+        
+        // Find user by phone number
+        const user = await User.findOne({ phoneNumber });
+        
+        if (!user) {
+            return res.status(200).json({ exists: false });
+        }
+        
+        // Return success with minimal user info
+        res.status(200).json({
+            exists: true,
+            userId: user._id
+        });
+    } catch (error) {
+        console.error('Error checking phone number:', error);
+        res.status(500).json({ message: 'Error checking phone number', error: error.message });
+    }
+};

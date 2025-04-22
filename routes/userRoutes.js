@@ -46,6 +46,9 @@ router.get('/', userController.getAllUsers);
 // Get admin and employee users for login dropdown
 router.get('/admin-employee', userController.getAdminEmployeeUsers);
 
+// Check if a user exists with a given phone number
+router.get('/check-phone/:phoneNumber', userController.checkPhoneNumber);
+
 // Delete user (admin only)
 router.delete('/:id', userController.deleteUser);
 
