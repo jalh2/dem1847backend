@@ -44,17 +44,17 @@ exports.register = async (req, res) => {
 // Login user
 exports.login = async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { phoneNumber, password } = req.body;
 
-        // Find user
-        const user = await User.findOne({ username });
+        // Find user by phone number instead of username
+        const user = await User.findOne({ phoneNumber });
         if (!user) {
-            return res.status(401).json({ message: 'Invalid username or password' });
+            return res.status(401).json({ message: 'Invalid phone number or password' });
         }
 
         // Verify password
         if (!user.verifyPassword(password)) {
-            return res.status(401).json({ message: 'Invalid username or password' });
+            return res.status(401).json({ message: 'Invalid phone number or password' });
         }
 
         // Update last login
