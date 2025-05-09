@@ -14,8 +14,11 @@ router.get('/profile/:id', userController.getProfile);
 // Update user profile
 router.put('/profile/:id', userController.updateProfile);
 
-// Change password
+// Change password by ID
 router.put('/change-password/:id', userController.changePassword);
+
+// Change password by username
+router.put('/change-password-by-username/:username', userController.changePasswordByUsername);
 
 // Get user address
 router.get('/address/:id', userController.getAddress);

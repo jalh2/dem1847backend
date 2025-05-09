@@ -44,17 +44,18 @@ exports.register = async (req, res) => {
 // Login user
 exports.login = async (req, res) => {
     try {
-        const { phoneNumber, password } = req.body;
+        const { username, phoneNumber, password } = req.body;
 
-        // Find user by phone number instead of username
-        const user = await User.findOne({ phoneNumber });
+        // Find user by username or phone number
+        const query = username ? { username } : { phoneNumber };
+        const user = await User.findOne(query);
         if (!user) {
-            return res.status(401).json({ message: 'Invalid phone number or password' });
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
         // Verify password
         if (!user.verifyPassword(password)) {
-            return res.status(401).json({ message: 'Invalid phone number or password' });
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
         // Update last login
@@ -128,7 +129,36 @@ exports.updateProfile = async (req, res) => {
     }
 };
 
-// Change password
+// Change password by username (admin only)
+exports.changePasswordByUsername = async (req, res) => {
+    try {
+        const username = req.params.username;
+        const { newPassword } = req.body;
+
+        if (!newPassword) {
+            return res.status(400).json({ message: 'New password is required' });
+        }
+
+        // Find user by username
+        const user = await User.findOne({ username });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Set new password
+        user.setPassword(newPassword);
+
+        // Save user
+        await user.save();
+
+        res.status(200).json({ message: 'Password updated successfully' });
+    } catch (error) {
+        console.error('Error changing password:', error);
+        res.status(500).json({ message: 'Error changing password', error: error.message });
+    }
+};
+
+// Change password by ID
 exports.changePassword = async (req, res) => {
     try {
         const userId = req.params.id;
