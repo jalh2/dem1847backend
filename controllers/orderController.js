@@ -222,8 +222,8 @@ exports.cancelOrder = async (req, res) => {
 // Upload payment proof for an order
 exports.uploadPaymentProof = async (req, res) => {
     try {
-        console.log('Payment proof upload request received:', req.params.orderId);
-        console.log('Request body:', JSON.stringify(req.body));
+        console.log('Payment proof upload request received for order ID:', req.params.orderId);
+        console.log('Request content type:', req.headers['content-type']);
         console.log('Request has file:', req.file ? 'Yes' : 'No');
         
         // Find order by ID
@@ -244,32 +244,49 @@ exports.uploadPaymentProof = async (req, res) => {
         // Handle file upload via multer
         if (req.file) {
             console.log('Processing file upload via multer');
-            // Read the file as binary data
-            const imageBuffer = fs.readFileSync(req.file.path);
+            console.log('File details:', req.file);
             
-            // Convert to base64 for storage in MongoDB
-            base64Image = imageBuffer.toString('base64');
-            mimeType = req.file.mimetype;
-            
-            // Store path for backward compatibility
-            imagePath = req.file.path.replace(/\\/g, '/');
-            console.log('Saving payment proof image path:', imagePath);
-            
-            // Clean up the file from the filesystem since we've stored it in MongoDB
-            fs.unlinkSync(req.file.path);
+            try {
+                // Read the file as binary data
+                const imageBuffer = fs.readFileSync(req.file.path);
+                
+                // Convert to base64 for storage in MongoDB
+                base64Image = imageBuffer.toString('base64');
+                mimeType = req.file.mimetype;
+                
+                // Store path for backward compatibility
+                imagePath = req.file.path.replace(/\\/g, '/');
+                console.log('Saving payment proof image path:', imagePath);
+                
+                // Clean up the file from the filesystem since we've stored it in MongoDB
+                fs.unlinkSync(req.file.path);
+                
+                console.log('Successfully processed file upload, base64 length:', base64Image.length);
+            } catch (fileError) {
+                console.error('Error processing uploaded file:', fileError);
+                return res.status(400).json({ message: 'Error processing uploaded file' });
+            }
         } 
         // Handle direct base64 data from mobile app
-        else if (req.body.paymentProofImageData) {
+        else if (req.body && req.body.paymentProofImageData) {
             console.log('Processing direct base64 image data');
             base64Image = req.body.paymentProofImageData;
             mimeType = req.body.paymentProofImageMimeType || 'image/jpeg';
             imagePath = `uploads/payments/direct-${Date.now()}.jpg`; // Virtual path for compatibility
+            console.log('Base64 data length:', base64Image.length);
         } 
         // No image data found
         else {
+            console.error('No payment proof image found in request');
+            console.log('Request body keys:', req.body ? Object.keys(req.body) : 'null');
             return res.status(400).json({ 
                 message: 'No payment proof image provided. Please provide either a file upload or base64 image data.' 
             });
+        }
+        
+        if (!base64Image) {
+            console.error('Base64 image data is null or empty');
+            return res.status(400).json({ message: 'Image data is empty or invalid' });
         }
         
         // Update order with payment proof image information
@@ -280,7 +297,12 @@ exports.uploadPaymentProof = async (req, res) => {
         
         console.log('Saving order with payment proof data');
         await order.save();
-        console.log('Order saved successfully');
+        console.log('Order saved successfully with payment proof');
+        
+        // Verify the data was saved correctly
+        const savedOrder = await Order.findById(req.params.orderId);
+        console.log('Verification - Payment proof data exists:', !!savedOrder.paymentProofImageData);
+        console.log('Verification - Payment proof data length:', savedOrder.paymentProofImageData ? savedOrder.paymentProofImageData.length : 0);
         
         res.status(200).json({
             message: 'Payment proof uploaded successfully',
@@ -288,14 +310,19 @@ exports.uploadPaymentProof = async (req, res) => {
                 id: order._id,
                 status: order.status,
                 paymentProofImage: order.paymentProofImage,
-                hasPaymentProofData: !!order.paymentProofImageData
+                hasPaymentProofData: !!order.paymentProofImageData,
+                dataLength: order.paymentProofImageData ? order.paymentProofImageData.length : 0
             }
         });
     } catch (error) {
         console.error('Error uploading payment proof:', error);
         // Clean up uploaded file if there's an error
         if (req.file) {
-            fs.unlinkSync(req.file.path);
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch (unlinkError) {
+                console.error('Error deleting file:', unlinkError);
+            }
         }
         res.status(500).json({ message: 'Error uploading payment proof', error: error.message });
     }
