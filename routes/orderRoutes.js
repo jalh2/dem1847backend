@@ -44,8 +44,24 @@ router.get('/user/:userId', orderController.getUserOrders);
 // Get order details
 router.get('/:orderId', orderController.getOrderDetails);
 
-// Upload payment proof
-router.post('/:orderId/payment-proof', upload.single('paymentProof'), orderController.uploadPaymentProof);
+// Upload payment proof - handle both file uploads and direct base64 data
+// The upload.single middleware will only run if a file is being uploaded
+router.post('/:orderId/payment-proof', (req, res, next) => {
+    // If the request has paymentProofImageData in the body, skip multer and go straight to the controller
+    if (req.body && req.body.paymentProofImageData) {
+        console.log('Direct base64 upload detected, bypassing multer');
+        return orderController.uploadPaymentProof(req, res, next);
+    }
+    // Otherwise, use multer to handle the file upload
+    console.log('File upload detected, using multer');
+    upload.single('paymentProof')(req, res, (err) => {
+        if (err) {
+            console.error('Multer error:', err);
+            return res.status(400).json({ message: err.message });
+        }
+        orderController.uploadPaymentProof(req, res, next);
+    });
+});
 
 // Update order status (admin only)
 router.put('/:orderId/status', orderController.updateOrderStatus);

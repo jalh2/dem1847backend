@@ -222,6 +222,10 @@ exports.cancelOrder = async (req, res) => {
 // Upload payment proof for an order
 exports.uploadPaymentProof = async (req, res) => {
     try {
+        console.log('Payment proof upload request received:', req.params.orderId);
+        console.log('Request body:', JSON.stringify(req.body));
+        console.log('Request has file:', req.file ? 'Yes' : 'No');
+        
         // Find order by ID
         const order = await Order.findById(req.params.orderId);
         
@@ -233,38 +237,58 @@ exports.uploadPaymentProof = async (req, res) => {
             return res.status(404).json({ message: 'Order not found' });
         }
         
-        // Check if file was uploaded
-        if (!req.file) {
-            return res.status(400).json({ message: 'No file uploaded' });
+        let base64Image = null;
+        let mimeType = null;
+        let imagePath = null;
+        
+        // Handle file upload via multer
+        if (req.file) {
+            console.log('Processing file upload via multer');
+            // Read the file as binary data
+            const imageBuffer = fs.readFileSync(req.file.path);
+            
+            // Convert to base64 for storage in MongoDB
+            base64Image = imageBuffer.toString('base64');
+            mimeType = req.file.mimetype;
+            
+            // Store path for backward compatibility
+            imagePath = req.file.path.replace(/\\/g, '/');
+            console.log('Saving payment proof image path:', imagePath);
+            
+            // Clean up the file from the filesystem since we've stored it in MongoDB
+            fs.unlinkSync(req.file.path);
+        } 
+        // Handle direct base64 data from mobile app
+        else if (req.body.paymentProofImageData) {
+            console.log('Processing direct base64 image data');
+            base64Image = req.body.paymentProofImageData;
+            mimeType = req.body.paymentProofImageMimeType || 'image/jpeg';
+            imagePath = `uploads/payments/direct-${Date.now()}.jpg`; // Virtual path for compatibility
+        } 
+        // No image data found
+        else {
+            return res.status(400).json({ 
+                message: 'No payment proof image provided. Please provide either a file upload or base64 image data.' 
+            });
         }
-        
-        // Read the file as binary data
-        const imageBuffer = fs.readFileSync(req.file.path);
-        
-        // Convert to base64 for storage in MongoDB
-        const base64Image = imageBuffer.toString('base64');
-        
-        // Store both the path (for backward compatibility) and the actual image data
-        const imagePath = req.file.path.replace(/\\/g, '/');
-        console.log('Saving payment proof image path:', imagePath);
         
         // Update order with payment proof image information
         order.paymentProofImage = imagePath;
         order.paymentProofImageData = base64Image;
-        order.paymentProofImageMimeType = req.file.mimetype;
+        order.paymentProofImageMimeType = mimeType;
         order.status = 'processing'; // Update status to processing after payment proof
         
+        console.log('Saving order with payment proof data');
         await order.save();
-        
-        // Clean up the file from the filesystem since we've stored it in MongoDB
-        fs.unlinkSync(req.file.path);
+        console.log('Order saved successfully');
         
         res.status(200).json({
             message: 'Payment proof uploaded successfully',
             order: {
                 id: order._id,
                 status: order.status,
-                paymentProofImage: order.paymentProofImage
+                paymentProofImage: order.paymentProofImage,
+                hasPaymentProofData: !!order.paymentProofImageData
             }
         });
     } catch (error) {
