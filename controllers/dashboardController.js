@@ -285,25 +285,81 @@ exports.getCurrencyRate = async (req, res) => {
  */
 exports.updateCurrencyRate = async (req, res) => {
     try {
+        console.log('Starting currency rate update process...');
         const { rate } = req.body;
+        console.log('Received new rate:', rate);
         
         if (!rate || isNaN(rate) || rate <= 0) {
+            console.log('Invalid rate provided:', rate);
             return res.status(400).json({ message: 'A valid positive number is required for the conversion rate' });
         }
         
+        console.log('Finding dashboard document...');
         let dashboard = await Dashboard.findOne();
         
         if (!dashboard) {
-            // Create a new dashboard document if it doesn't exist
+            console.log('No dashboard found, creating new one...');
             dashboard = new Dashboard();
         }
+        
+        const oldRate = dashboard.currencyConversionRate;
+        console.log('Old rate:', oldRate, 'New rate:', rate);
         
         dashboard.currencyConversionRate = rate;
         dashboard.lastUpdated = new Date();
         
+        console.log('Saving dashboard with new rate...');
         await dashboard.save();
+        console.log('Dashboard saved successfully');
         
-        res.json({ rate: dashboard.currencyConversionRate, message: 'Currency conversion rate updated successfully' });
+        // Update all product LRD prices with the new rate
+        console.log('Fetching all products...');
+        const products = await Product.find({});
+        console.log(`Found ${products.length} products to update`);
+        
+        console.log('Updating products individually...');
+        for (const product of products) {
+            const newLRDPrice = product.priceUSD * rate;
+            const newTotalValueLRD = newLRDPrice * product.quantityInStock;
+            
+            console.log(`Updating product ${product._id}:`);
+            console.log(`- Name: ${product.name}`);
+            console.log(`- USD Price: ${product.priceUSD}`);
+            console.log(`- Old LRD Price: ${product.priceLRD}`);
+            console.log(`- New LRD Price: ${newLRDPrice}`);
+            console.log(`- Quantity: ${product.quantityInStock}`);
+            console.log(`- Old Total Value LRD: ${product.totalValueLRD}`);
+            console.log(`- New Total Value LRD: ${newTotalValueLRD}`);
+            
+            try {
+                const updatedProduct = await Product.findOneAndUpdate(
+                    { _id: product._id },
+                    { 
+                        $set: { 
+                            priceLRD: newLRDPrice,
+                            totalValueLRD: newTotalValueLRD
+                        } 
+                    },
+                    { new: true }
+                );
+                
+                if (updatedProduct) {
+                    console.log(`✓ Successfully updated product ${product._id}`);
+                    console.log(`  New values: LRD ${updatedProduct.priceLRD}, Total: ${updatedProduct.totalValueLRD}`);
+                } else {
+                    console.log(`✗ Failed to update product ${product._id}`);
+                }
+            } catch (error) {
+                console.error(`Error updating product ${product._id}:`, error);
+            }
+        }
+        
+        console.log('Currency rate update completed successfully');
+        res.json({ 
+            rate: dashboard.currencyConversionRate, 
+            message: 'Currency conversion rate and product prices updated successfully',
+            productsUpdated: bulkOps.length
+        });
     } catch (error) {
         console.error('Error updating currency conversion rate:', error);
         res.status(500).json({ message: 'Server error' });
