@@ -32,4 +32,10 @@ router.get('/summary', dashboardController.getSummaryStats);
 // Get custom date range sales data
 router.post('/custom-range', dashboardController.getCustomRangeSales);
 
+// Get currency conversion rate
+router.get('/currency-rate', dashboardController.getCurrencyRate);
+
+// Update currency conversion rate
+router.put('/currency-rate', dashboardController.updateCurrencyRate);
+
 module.exports = router;

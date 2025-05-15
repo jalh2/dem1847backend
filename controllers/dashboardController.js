@@ -257,3 +257,55 @@ exports.getCustomRangeSales = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+/**
+ * Get currency conversion rate (USD to LRD)
+ * @route GET /api/dashboard/currency-rate
+ * @access Public
+ */
+exports.getCurrencyRate = async (req, res) => {
+    try {
+        const dashboard = await Dashboard.findOne();
+        
+        if (!dashboard) {
+            return res.status(404).json({ message: 'Dashboard data not found' });
+        }
+        
+        res.json({ rate: dashboard.currencyConversionRate });
+    } catch (error) {
+        console.error('Error fetching currency conversion rate:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+/**
+ * Update currency conversion rate (USD to LRD)
+ * @route PUT /api/dashboard/currency-rate
+ * @access Admin only
+ */
+exports.updateCurrencyRate = async (req, res) => {
+    try {
+        const { rate } = req.body;
+        
+        if (!rate || isNaN(rate) || rate <= 0) {
+            return res.status(400).json({ message: 'A valid positive number is required for the conversion rate' });
+        }
+        
+        let dashboard = await Dashboard.findOne();
+        
+        if (!dashboard) {
+            // Create a new dashboard document if it doesn't exist
+            dashboard = new Dashboard();
+        }
+        
+        dashboard.currencyConversionRate = rate;
+        dashboard.lastUpdated = new Date();
+        
+        await dashboard.save();
+        
+        res.json({ rate: dashboard.currencyConversionRate, message: 'Currency conversion rate updated successfully' });
+    } catch (error) {
+        console.error('Error updating currency conversion rate:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};

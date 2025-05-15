@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const dashboardSchema = new mongoose.Schema({
+    // Currency conversion rate (USD to LRD)
+    currencyConversionRate: {
+        type: Number,
+        default: 200
+    },
+    
     // Summary statistics
     totalRevenue: {
         USD: {
