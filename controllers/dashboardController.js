@@ -317,7 +317,9 @@ exports.updateCurrencyRate = async (req, res) => {
         const products = await Product.find({});
         console.log(`Found ${products.length} products to update`);
         
+        let updatedCount = 0;
         console.log('Updating products individually...');
+        
         for (const product of products) {
             const newLRDPrice = product.priceUSD * rate;
             const newTotalValueLRD = newLRDPrice * product.quantityInStock;
@@ -344,6 +346,7 @@ exports.updateCurrencyRate = async (req, res) => {
                 );
                 
                 if (updatedProduct) {
+                    updatedCount++;
                     console.log(`✓ Successfully updated product ${product._id}`);
                     console.log(`  New values: LRD ${updatedProduct.priceLRD}, Total: ${updatedProduct.totalValueLRD}`);
                 } else {
@@ -358,7 +361,7 @@ exports.updateCurrencyRate = async (req, res) => {
         res.json({ 
             rate: dashboard.currencyConversionRate, 
             message: 'Currency conversion rate and product prices updated successfully',
-            productsUpdated: bulkOps.length
+            productsUpdated: updatedCount
         });
     } catch (error) {
         console.error('Error updating currency conversion rate:', error);
