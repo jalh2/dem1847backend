@@ -86,47 +86,41 @@ productSchema.pre('save', function(next) {
 });
 
 // Pre-update middleware to update totalValue fields
-productSchema.pre('findOneAndUpdate', function(next) {
+productSchema.pre('findOneAndUpdate', async function() {
     const update = this.getUpdate();
     const priceUSD = update.priceUSD || update['$set']?.priceUSD;
     const priceLRD = update.priceLRD || update['$set']?.priceLRD;
     const quantityInStock = update.quantityInStock || update['$set']?.quantityInStock;
     
+    update['$set'] = update['$set'] || {};
+    
+    // If we have both price and quantity in the update
     if ((priceUSD || priceLRD) && quantityInStock) {
         if (priceUSD) {
-            update['$set'] = update['$set'] || {};
             update['$set'].totalValueUSD = priceUSD * quantityInStock;
         }
         if (priceLRD) {
-            update['$set'] = update['$set'] || {};
             update['$set'].totalValueLRD = priceLRD * quantityInStock;
         }
-    } else if (priceUSD && !quantityInStock) {
-        // We need to get the current document to calculate the new total value
-        this.findOne().then(doc => {
-            if (doc) {
-                update['$set'] = update['$set'] || {};
-                update['$set'].totalValueUSD = priceUSD * doc.quantityInStock;
-            }
-        });
-    } else if (priceLRD && !quantityInStock) {
-        this.findOne().then(doc => {
-            if (doc) {
-                update['$set'] = update['$set'] || {};
-                update['$set'].totalValueLRD = priceLRD * doc.quantityInStock;
-            }
-        });
-    } else if (quantityInStock && !priceUSD && !priceLRD) {
-        this.findOne().then(doc => {
-            if (doc) {
-                update['$set'] = update['$set'] || {};
-                update['$set'].totalValueUSD = doc.priceUSD * quantityInStock;
-                update['$set'].totalValueLRD = doc.priceLRD * quantityInStock;
-            }
-        });
+        return;
     }
     
-    next();
+    // If we need the current document to calculate totals
+    if (priceUSD || priceLRD || quantityInStock) {
+        const doc = await this.model.findOne(this.getQuery()).exec();
+        if (!doc) return;
+        
+        if (priceUSD && !quantityInStock) {
+            update['$set'].totalValueUSD = priceUSD * doc.quantityInStock;
+        }
+        if (priceLRD && !quantityInStock) {
+            update['$set'].totalValueLRD = priceLRD * doc.quantityInStock;
+        }
+        if (quantityInStock && !priceUSD && !priceLRD) {
+            update['$set'].totalValueUSD = doc.priceUSD * quantityInStock;
+            update['$set'].totalValueLRD = doc.priceLRD * quantityInStock;
+        }
+    }
 });
 
 module.exports = mongoose.model('Product', productSchema);
